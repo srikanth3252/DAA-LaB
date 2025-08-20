@@ -11,5 +11,5 @@ int main()
 	scanf("%d",&r);
 	int sum;
 	sum=a*((pow(r,n)-1)/(r-1));
-	printf("sum of the elements in the given gp is= %d",sum);
+	printf("sum of the elements in the given gp is= %d",sum);
 }
