@@ -1,0 +1,151 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 256
+
+typedef struct Node {
+    char letter;
+    int freq;
+    struct Node *left, *right;
+} Node;
+
+typedef struct MinHeap {
+    int size;
+    int capacity;
+    Node **array;
+} MinHeap;
+
+Node* newNode(char letter, int freq) {
+    Node* temp = (Node*)malloc(sizeof(Node));
+    temp->letter = letter;
+    temp->freq = freq;
+    temp->left = temp->right = NULL;
+    return temp;
+}
+
+MinHeap* createMinHeap(int capacity) {
+    MinHeap* minHeap = (MinHeap*)malloc(sizeof(MinHeap));
+    minHeap->size = 0;
+    minHeap->capacity = capacity;
+    minHeap->array = (Node**)malloc(capacity * sizeof(Node*));
+    return minHeap;
+}
+
+void swapNode(Node** a, Node** b) {
+    Node* t = *a;
+    *a = *b;
+    *b = t;
+}
+
+void minHeapify(MinHeap* minHeap, int idx) {
+    int smallest = idx;
+    int left = 2*idx + 1;
+    int right = 2*idx + 2;
+    if (left < minHeap->size && minHeap->array[left]->freq < minHeap->array[smallest]->freq)
+        smallest = left;
+    if (right < minHeap->size && minHeap->array[right]->freq < minHeap->array[smallest]->freq)
+        smallest = right;
+    if (smallest != idx) {
+        swapNode(&minHeap->array[smallest], &minHeap->array[idx]);
+        minHeapify(minHeap, smallest);
+    }
+}
+
+void insertMinHeap(MinHeap* minHeap, Node* node) {
+    minHeap->size++;
+    int i = minHeap->size - 1;
+    minHeap->array[i] = node;
+    while (i && minHeap->array[i]->freq < minHeap->array[(i - 1)/2]->freq) {
+        swapNode(&minHeap->array[i], &minHeap->array[(i - 1)/2]);
+        i = (i - 1)/2;
+    }
+}
+
+Node* extractMin(MinHeap* minHeap) {
+    Node* temp = minHeap->array[0];
+    minHeap->array[0] = minHeap->array[minHeap->size - 1];
+    minHeap->size--;
+    minHeapify(minHeap, 0);
+    return temp;
+}
+
+Node* buildHuffmanTree(char letters[], int freq[], int n) {
+    Node *left, *right, *top;
+    MinHeap* minHeap = createMinHeap(n);
+    for (int i = 0; i < n; i++)
+        insertMinHeap(minHeap, newNode(letters[i], freq[i]));
+    while (minHeap->size > 1) {
+        left = extractMin(minHeap);
+        right = extractMin(minHeap);
+        top = newNode('$', left->freq + right->freq);
+        top->left = left;
+        top->right = right;
+        insertMinHeap(minHeap, top);
+    }
+    return extractMin(minHeap);
+}
+
+void printCodes(Node* root, int arr[], int top, int freq[], char letters[]) {
+    if (root->left) {
+        arr[top] = 0;
+        printCodes(root->left, arr, top+1, freq, letters);
+    }
+    if (root->right) {
+        arr[top] = 1;
+        printCodes(root->right, arr, top+1, freq, letters);
+    }
+    if (!root->left && !root->right) {
+        printf("%c: ", root->letter);
+        int bits = 0;
+        for (int i = 0; i < top; i++) {
+            printf("%d", arr[i]);
+            bits++;
+        }
+        int index;
+        for (index = 0; index < 9; index++) {
+            if (letters[index] == root->letter)
+                break;
+        }
+        int mem = freq[index] * bits * 100;
+        printf("  (Bits: %d)\n", mem);
+    }
+}
+
+
+void calcCodeLen(Node* r, int depth, char letters[], int n, int codeLens[]) {
+    if (!r) return;
+    if (!r->left && !r->right) {
+        for (int i=0; i<n; i++)
+            if (letters[i] == r->letter)
+                codeLens[i] = depth;
+    }
+    calcCodeLen(r->left, depth+1, letters, n, codeLens);
+    calcCodeLen(r->right, depth+1, letters, n, codeLens);
+}
+
+int main() {
+    char letters[] = {'a','c','d','e','o','m','s','t','u'};
+    int freq[] = {20,11,2,10,15,8,10,22,2};
+    int n = sizeof(letters)/sizeof(letters[0]);
+    Node* root = buildHuffmanTree(letters, freq, n);
+
+    int arr[MAX], top = 0;
+    printf("Huffman Codes:\n");
+    printCodes(root, arr, top, freq, letters);
+
+    int totalBits = 0;
+    int codeLens[MAX];
+    for (int i = 0; i < n; i++) codeLens[i] = 0;
+
+    calcCodeLen(root, 0, letters, n, codeLens);
+
+    for (int i=0; i<n; i++)
+        totalBits += freq[i]*100*codeLens[i];
+
+    printf("\nTotal memory required: %d bits (~%.2f KB)\n", totalBits, totalBits/8.0/1024);
+
+    return 0;
+}
+
+ 
