@@ -1,0 +1,155 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+struct Edge {
+    int v;
+    int w;
+    struct Edge* next;
+};
+
+struct Node {
+    int vertex;
+    int dist;
+};
+
+struct MinHeap {
+    int size;
+    int capacity;
+    int *pos;
+    struct Node **array;
+};
+
+struct Edge* newEdge(int v, int w) {
+    struct Edge* e = malloc(sizeof(struct Edge));
+    e->v = v;
+    e->w = w;
+    e->next = NULL;
+    return e;
+}
+
+struct Node* newNode(int v, int dist) {
+    struct Node* n = malloc(sizeof(struct Node));
+    n->vertex = v;
+    n->dist = dist;
+    return n;
+}
+
+struct MinHeap* createHeap(int capacity) {
+    struct MinHeap* heap = malloc(sizeof(struct MinHeap));
+    heap->pos = malloc(capacity * sizeof(int));
+    heap->size = 0;
+    heap->capacity = capacity;
+    heap->array = malloc(capacity * sizeof(struct Node*));
+    return heap;
+}
+
+void swapNode(struct Node** a, struct Node** b) {
+    struct Node* t = *a;
+    *a = *b;
+    *b = t;
+}
+
+void heapify(struct MinHeap* heap, int idx) {
+    int smallest = idx;
+    int left = 2 * idx + 1;
+    int right = 2 * idx + 2;
+    if (left < heap->size && heap->array[left]->dist < heap->array[smallest]->dist)
+        smallest = left;
+    if (right < heap->size && heap->array[right]->dist < heap->array[smallest]->dist)
+        smallest = right;
+    if (smallest != idx) {
+        struct Node* smallestNode = heap->array[smallest];
+        struct Node* idxNode = heap->array[idx];
+        heap->pos[smallestNode->vertex] = idx;
+        heap->pos[idxNode->vertex] = smallest;
+        swapNode(&heap->array[smallest], &heap->array[idx]);
+        heapify(heap, smallest);
+    }
+}
+
+int isEmpty(struct MinHeap* heap) {
+    return heap->size == 0;
+}
+
+struct Node* extractMin(struct MinHeap* heap) {
+    if (isEmpty(heap))
+        return NULL;
+    struct Node* root = heap->array[0];
+    struct Node* lastNode = heap->array[heap->size - 1];
+    heap->array[0] = lastNode;
+    heap->pos[root->vertex] = heap->size - 1;
+    heap->pos[lastNode->vertex] = 0;
+    heap->size--;
+    heapify(heap, 0);
+    return root;
+}
+
+void decreaseKey(struct MinHeap* heap, int v, int dist) {
+    int i = heap->pos[v];
+    heap->array[i]->dist = dist;
+    while (i && heap->array[i]->dist < heap->array[(i - 1) / 2]->dist) {
+        heap->pos[heap->array[i]->vertex] = (i - 1) / 2;
+        heap->pos[heap->array[(i - 1) / 2]->vertex] = i;
+        swapNode(&heap->array[i], &heap->array[(i - 1) / 2]);
+        i = (i - 1) / 2;
+    }
+}
+
+int isInHeap(struct MinHeap* heap, int v) {
+    if (heap->pos[v] < heap->size)
+        return 1;
+    return 0;
+}
+
+void dijkstra(int V, struct Edge** adj, int src) {
+    int *dist = malloc(V * sizeof(int));
+    struct MinHeap* heap = createHeap(V);
+    for (int v = 0; v < V; v++) {
+        dist[v] = INT_MAX;
+        heap->array[v] = newNode(v, dist[v]);
+        heap->pos[v] = v;
+    }
+    heap->array[src]->dist = 0;
+    dist[src] = 0;
+    decreaseKey(heap, src, 0);
+    heap->size = V;
+    while (!isEmpty(heap)) {
+        struct Node* minNode = extractMin(heap);
+        int u = minNode->vertex;
+        struct Edge* crawl = adj[u];
+        while (crawl) {
+            int v = crawl->v;
+            if (isInHeap(heap, v) && dist[u] != INT_MAX && crawl->w + dist[u] < dist[v]) {
+                dist[v] = dist[u] + crawl->w;
+                decreaseKey(heap, v, dist[v]);
+            }
+            crawl = crawl->next;
+        }
+    }
+    printf("Vertex\tDistance from Source\n");
+    for (int i = 0; i < V; i++)
+        printf("%d\t%d\n", i, dist[i]);
+}
+
+int main() {
+    int V, E;
+    scanf("%d%d", &V, &E);
+    struct Edge** adj = malloc(V * sizeof(struct Edge*));
+    for (int i = 0; i < V; i++)
+        adj[i] = NULL;
+    for (int i = 0; i < E; i++) {
+        int u, v, w;
+        scanf("%d%d%d", &u, &v, &w);
+        struct Edge* e1 = newEdge(v, w);
+        e1->next = adj[u];
+        adj[u] = e1;
+        struct Edge* e2 = newEdge(u, w);
+        e2->next = adj[v];
+        adj[v] = e2;
+    }
+    int src;
+    scanf("%d", &src);
+    dijkstra(V, adj, src);
+    return 0;
+}
