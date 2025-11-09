@@ -1,0 +1,47 @@
+#include &lt;stdio.h&gt;
+#define INF 99999
+#define MAX 100
+
+void floydWarshall(int graph[MAX][MAX], int V) {
+int dist[MAX][MAX];
+
+for (int i = 0; i &lt; V; i++)
+for (int j = 0; j &lt; V; j++)
+dist[i][j] = graph[i][j];
+
+for (int k = 0; k &lt; V; k++) {
+for (int i = 0; i &lt; V; i++) {
+for (int j = 0; j &lt; V; j++) {
+if (dist[i][k] + dist[k][j] &lt; dist[i][j])
+dist[i][j] = dist[i][k] + dist[k][j];
+}
+}
+}
+
+printf(&quot;\nAll-Pairs Shortest Path Matrix:\n&quot;);
+for (int i = 0; i &lt; V; i++) {
+
+for (int j = 0; j &lt; V; j++) {
+if (dist[i][j] == INF)
+printf(&quot;%7s&quot;, &quot;INF&quot;);
+else
+printf(&quot;%7d&quot;, dist[i][j]);
+}
+printf(&quot;\n&quot;);
+}
+}
+
+int main() {
+int V;
+printf(&quot;Enter number of vertices: &quot;);
+scanf(&quot;%d&quot;, &amp;V);
+
+int graph[MAX][MAX];
+printf(&quot;Enter adjacency matrix (use %d for INF / no edge):\n&quot;, INF);
+for (int i = 0; i &lt; V; i++)
+for (int j = 0; j &lt; V; j++)
+scanf(&quot;%d&quot;, &amp;graph[i][j]);
+
+floydWarshall(graph, V);
+return 0;
+}
